@@ -1,0 +1,6 @@
+elm-stuff
+config/firebase.yml
+dist/
+node_modules/
+.firebase/*.cache
+.env
