@@ -1,41 +1,54 @@
+* {
+ box-sizing: border-box;
+}
 
 body {
 }
 
+$mass-size: 120px;
+$cube-size: 64px;
+
 .board-container {
   display: grid;
-  grid-template-rows: 120px 120px 120px 120px 120px 120px;
-  grid-template-columns: 120px 120px 120px 120px 120px;
+  grid-template-rows: $mass-size $mass-size $mass-size $mass-size $mass-size $mass-size;
+  grid-template-columns: $mass-size $mass-size $mass-size $mass-size $mass-size;
 }
 
 .mass-container {
   border: 1px solid #000;
+  padding: ($mass-size - ($cube-size + 12 + 12)) / 2;
 }
 
 .cube-wrapper {
-  height: 120px;
-  width: 80px;
-  display: grid;
-  grid-template-areas:
-          "a a"
-          "a a"
-          "b c";
+   position: relative;
 }
 
 .cube {
-  width: 100%;
-  height: 100%;
   border: 1px solid #888;
+  position: absolute;
 
   &--z-first {
-    grid-area: a;
+    cursor: grab;
+    z-index: 300;
+    top: 0;
+    left: 0;
+    width: $cube-size;
+    height: $cube-size;
   }
   &--z-second {
-    grid-area: b;
+    z-index: 200;
+    top: 12px;
+    left: 12px;
+    width: $cube-size;
+    height: $cube-size;
   }
 
   &--z-third {
-    grid-area: c;
+    z-index: 100;
+    top: 12px + 12px;
+    left: 12px + 12px;
+    width: $cube-size;
+    height: $cube-size;
   }
 
   &--black {
