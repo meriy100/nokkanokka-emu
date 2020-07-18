@@ -27,14 +27,14 @@ body {
   height: 100%;
   border: 1px solid #888;
 
-  &--z-top {
+  &--z-first {
     grid-area: a;
   }
-  &--z-two {
+  &--z-second {
     grid-area: b;
   }
 
-  &--z-three {
+  &--z-third {
     grid-area: c;
   }
 
