@@ -39,13 +39,17 @@ type CubeId
     = CubeId Int
 
 
-type alias Cube =
-    { id : CubeId
-    , color : Color
-    , x : X
-    , y : Y
-    , z : Z
-    }
+type Cube
+    = Cube
+        { id : CubeId
+        , color : Color
+        , x : X
+        , y : Y
+        , stack :
+            { two : Maybe Cube
+            , three : Maybe Cube
+            }
+        }
 
 
 type alias Model =
@@ -75,20 +79,16 @@ yList =
     ]
 
 
-zList : List Z
-zList =
-    [ ZOne
-    , ZTwo
-    , ZThree
-    ]
+initStack =
+    { two = Nothing, three = Nothing }
 
 
 init : Model
 init =
     { cubes =
-        List.map (\x -> { id = CubeId 0, color = Black, x = x, y = YOne, z = ZOne }) xList
-            ++ List.map (\x -> { id = CubeId 0, color = White, x = x, y = YSix, z = ZOne }) xList
-            |> List.indexedMap (\idx -> \cube -> { cube | id = CubeId idx })
+        List.map (\x -> Cube { id = CubeId 0, color = Black, x = x, y = YOne, stack = initStack }) xList
+            ++ List.map (\x -> Cube { id = CubeId 0, color = White, x = x, y = YSix, stack = initStack }) xList
+            |> List.indexedMap (\idx -> \(Cube record) -> Cube { record | id = CubeId idx })
     , maybeDragOn = Nothing
     }
 
@@ -117,42 +117,30 @@ update msg model =
                 Nothing ->
                     { model | maybeDragOn = Nothing }
 
-                Just cube ->
+                Just (Cube cube) ->
                     let
-                        movedCube =
-                            { cube | x = point.x, y = point.y, z = ZOne }
-
                         newCubes =
                             model.cubes
                                 |> List.map
-                                    (\c ->
-                                        if c.id == movedCube.id then
-                                            movedCube
-
-                                        else if c.x == point.x && c.y == point.y then
-                                            case c.z of
-                                                ZOne ->
-                                                    { c | z = ZTwo }
-
-                                                ZTwo ->
-                                                    { c | z = ZThree }
-
-                                                ZThree ->
-                                                    c
+                                    (\(Cube c) ->
+                                        if c.x == point.x && c.y == point.y then
+                                            Cube
+                                                { cube
+                                                    | stack = { two = Just (Cube c), three = c.stack.two }
+                                                    , x = point.x
+                                                    , y = point.y
+                                                }
 
                                         else if c.x == cube.x && c.y == cube.y then
-                                            case c.z of
-                                                ZOne ->
-                                                    c
-
-                                                ZTwo ->
-                                                    { c | z = ZOne }
-
-                                                ZThree ->
-                                                    { c | z = ZTwo }
+                                            Cube
+                                                { cube
+                                                    | stack = { two = c.stack.three, three = Nothing }
+                                                    , x = point.x
+                                                    , y = point.y
+                                                }
 
                                         else
-                                            c
+                                            Cube c
                                     )
                     in
                     { model | maybeDragOn = Nothing, cubes = newCubes }
@@ -180,8 +168,8 @@ decodeDrop point =
             )
 
 
-viewCube : Cube -> Html Msg
-viewCube cube =
+viewCube : Z -> Cube -> Html Msg
+viewCube z (Cube cube) =
     let
         colorClass =
             case cube.color of
@@ -192,7 +180,7 @@ viewCube cube =
                     "cube--white"
 
         zLevelClass =
-            case cube.z of
+            case z of
                 ZOne ->
                     "cube--z-top"
 
@@ -203,8 +191,8 @@ viewCube cube =
                     "cube--z-three"
 
         topEvents =
-            if cube.z == ZOne then
-                [ cube |> decodeDragStart |> E.on "dragstart"
+            if z == ZOne then
+                [ cube |> Cube |> decodeDragStart |> E.on "dragstart"
                 ]
 
             else
@@ -224,11 +212,27 @@ viewCube cube =
 viewMass : { x : X, y : Y, cubes : List Cube } -> Html Msg
 viewMass { x, y, cubes } =
     let
-        currentCubes =
-            cubes |> List.filter (\c -> c.x == x && c.y == y)
+        maybeCurrentCube =
+            cubes
+                |> List.filter (\(Cube c) -> c.x == x && c.y == y)
+                |> List.head
+
+        maybeCurrentCubeView =
+            maybeCurrentCube
+                |> Maybe.map (viewCube ZOne)
+
+        maybeSecondCube =
+            maybeCurrentCube
+                |> Maybe.andThen (\(Cube c) -> c.stack.two)
+                |> Maybe.map (viewCube ZTwo)
+
+        maybeThirdCube =
+            maybeCurrentCube
+                |> Maybe.andThen (\(Cube c) -> c.stack.three)
+                |> Maybe.map (viewCube ZThree)
     in
-    currentCubes
-        |> List.map viewCube
+    [ maybeCurrentCubeView, maybeSecondCube, maybeThirdCube ]
+        |> List.filterMap identity
         |> (H.div [ A.class "cube-wrapper" ] >> List.singleton)
         |> H.div
             [ A.class "mass-container"
