@@ -54,10 +54,7 @@ module.exports = {
             options: {
               url: false,
               sourceMap: enabledSourceMap,
-              importLoaders: 2,
-              modules:  {
-                localIdentName: '[name]-[local]__[hash:base64:8]',
-              },
+              importLoaders: 2
             }
           },
           {

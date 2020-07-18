@@ -1,0 +1,27 @@
+
+body {
+}
+
+.board-container {
+  display: grid;
+  grid-template-rows: 120px 120px 120px 120px 120px 120px;
+  grid-template-columns: 120px 120px 120px 120px 120px;
+}
+
+.mass-container {
+  border: 1px solid #000;
+}
+
+
+.cube {
+  width: 100px;
+  height: 100px;
+  border: 1px solid #888;
+  
+  &__black {
+    background: black;
+  }
+  &__white {
+    background: white;
+  }
+}

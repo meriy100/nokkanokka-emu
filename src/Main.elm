@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html as H exposing (Html)
+import Html.Attributes as A
 import Html.Events exposing (onClick)
 
 
@@ -86,17 +87,42 @@ update msg model =
             model
 
 
-viewMass =
-    H.div []
+viewCube : Cube -> Html Msg
+viewCube cube =
+    let
+        colorClass =
+            case cube.color of
+                Black ->
+                    "cube__black"
+
+                White ->
+                    "cube__white"
+    in
+    H.div [ A.class "cube", A.class colorClass ]
         []
 
 
+viewMass : { x : X, y : Y, cubes : List Cube } -> Html Msg
+viewMass { x, y, cubes } =
+    let
+        maybeCurrentCube =
+            cubes |> List.filter (\c -> c.x == x && c.y == y) |> List.head
+    in
+    maybeCurrentCube
+        |> Maybe.andThen (viewCube >> List.singleton >> Just)
+        |> Maybe.withDefault []
+        |> H.div
+            [ A.class "mass-container" ]
+
+
 view model =
-    H.div []
+    H.div
+        [ A.class "board-container"
+        ]
         (yList
             |> List.map
                 (\y ->
-                    xList |> List.map (\x -> viewMass)
+                    xList |> List.map (\x -> viewMass { x = x, y = y, cubes = model.cubes })
                 )
             |> List.concat
         )
