@@ -29,6 +29,12 @@ type Y
     | YSix
 
 
+type Z
+    = ZOne
+    | ZTwo
+    | ZThree
+
+
 type CubeId
     = CubeId Int
 
@@ -38,12 +44,13 @@ type alias Cube =
     , color : Color
     , x : X
     , y : Y
+    , z : Z
     }
 
 
 type alias Model =
     { cubes : List Cube
-    , maybeDragOn : Maybe CubeId
+    , maybeDragOn : Maybe Cube
     }
 
 
@@ -68,11 +75,19 @@ yList =
     ]
 
 
+zList : List Z
+zList =
+    [ ZOne
+    , ZTwo
+    , ZThree
+    ]
+
+
 init : Model
 init =
     { cubes =
-        List.map (\x -> { id = CubeId 0, color = Black, x = x, y = YOne }) xList
-            ++ List.map (\x -> { id = CubeId 0, color = White, x = x, y = YSix }) xList
+        List.map (\x -> { id = CubeId 0, color = Black, x = x, y = YOne, z = ZOne }) xList
+            ++ List.map (\x -> { id = CubeId 0, color = White, x = x, y = YSix, z = ZOne }) xList
             |> List.indexedMap (\idx -> \cube -> { cube | id = CubeId idx })
     , maybeDragOn = Nothing
     }
@@ -83,7 +98,7 @@ main =
 
 
 type Msg
-    = DragOn CubeId
+    = DragOn Cube
     | DragOut { x : X, y : Y }
     | None
 
@@ -94,45 +109,63 @@ update msg model =
         None ->
             model
 
-        DragOn cubeId ->
-            { model | maybeDragOn = Just cubeId }
+        DragOn cube ->
+            { model | maybeDragOn = Just cube }
 
         DragOut point ->
-            let
-                maybeTargetCube =
-                    model.maybeDragOn
-                        |> Maybe.andThen
-                            (\cubeId ->
-                                model.cubes |> List.filter (\c -> c.id == cubeId) |> List.head
-                            )
+            case model.maybeDragOn of
+                Nothing ->
+                    { model | maybeDragOn = Nothing }
 
-                newCubes =
-                    case maybeTargetCube of
-                        Nothing ->
-                            model.cubes
+                Just cube ->
+                    let
+                        movedCube =
+                            { cube | x = point.x, y = point.y, z = ZOne }
 
-                        Just targetCube ->
+                        newCubes =
                             model.cubes
                                 |> List.map
                                     (\c ->
-                                        if c.id == targetCube.id then
-                                            { c | x = point.x, y = point.y }
+                                        if c.id == movedCube.id then
+                                            movedCube
+
+                                        else if c.x == point.x && c.y == point.y then
+                                            case c.z of
+                                                ZOne ->
+                                                    { c | z = ZTwo }
+
+                                                ZTwo ->
+                                                    { c | z = ZThree }
+
+                                                ZThree ->
+                                                    c
+
+                                        else if c.x == cube.x && c.y == cube.y then
+                                            case c.z of
+                                                ZOne ->
+                                                    c
+
+                                                ZTwo ->
+                                                    { c | z = ZOne }
+
+                                                ZThree ->
+                                                    { c | z = ZTwo }
 
                                         else
                                             c
                                     )
-            in
-            { model | maybeDragOn = Nothing, cubes = newCubes }
+                    in
+                    { model | maybeDragOn = Nothing, cubes = newCubes }
 
 
-decodeDragStart : CubeId -> Decoder Msg
-decodeDragStart cubeId =
+decodeDragStart : Cube -> Decoder Msg
+decodeDragStart cube =
     Decode.map (Debug.log "target")
         (Decode.field "target" Decode.value)
         |> Decode.andThen
             (\x ->
                 Decode.succeed
-                    (DragOn cubeId)
+                    (DragOn cube)
             )
 
 
@@ -153,29 +186,50 @@ viewCube cube =
         colorClass =
             case cube.color of
                 Black ->
-                    "cube__black"
+                    "cube--black"
 
                 White ->
-                    "cube__white"
+                    "cube--white"
+
+        zLevelClass =
+            case cube.z of
+                ZOne ->
+                    "cube--z-top"
+
+                ZTwo ->
+                    "cube--z-two"
+
+                ZThree ->
+                    "cube--z-three"
+
+        topEvents =
+            if cube.z == ZOne then
+                [ cube |> decodeDragStart |> E.on "dragstart"
+                ]
+
+            else
+                []
     in
     H.div
-        [ A.class "cube"
-        , A.class colorClass
-        , A.attribute "draggable" "true"
-        , cube.id |> decodeDragStart |> E.on "dragstart"
-        ]
+        ([ A.class "cube"
+         , A.class colorClass
+         , A.class zLevelClass
+         , A.attribute "draggable" "true"
+         ]
+            ++ topEvents
+        )
         []
 
 
 viewMass : { x : X, y : Y, cubes : List Cube } -> Html Msg
 viewMass { x, y, cubes } =
     let
-        maybeCurrentCube =
-            cubes |> List.filter (\c -> c.x == x && c.y == y) |> List.head
+        currentCubes =
+            cubes |> List.filter (\c -> c.x == x && c.y == y)
     in
-    maybeCurrentCube
-        |> Maybe.andThen (viewCube >> List.singleton >> Just)
-        |> Maybe.withDefault []
+    currentCubes
+        |> List.map viewCube
+        |> (H.div [ A.class "cube-wrapper" ] >> List.singleton)
         |> H.div
             [ A.class "mass-container"
             , { x = x, y = y } |> decodeDrop |> E.preventDefaultOn "drop"
