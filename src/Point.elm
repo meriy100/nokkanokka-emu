@@ -1,4 +1,4 @@
-module Point exposing (Point, X(..), Y(..), toList, xList, yList)
+module Point exposing (Point, X(..), Y(..), eq, toList, xList, yList)
 
 
 type alias Point =
@@ -51,3 +51,8 @@ yList =
     , YFive
     , YSix
     ]
+
+
+eq : Point -> Point -> Bool
+eq point1 point2 =
+    point1.x == point2.x && point1.y == point2.y

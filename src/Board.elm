@@ -291,21 +291,25 @@ update msg ({ board, maybeDragging } as model) =
                     model
 
                 Just draggingPoint ->
-                    let
-                        from =
-                            findMass board draggingPoint |> Debug.log "from"
+                    if draggingPoint |> Point.eq point then
+                        { model | maybeDragging = Nothing }
 
-                        to =
-                            findMass board point |> Debug.log "to"
-                    in
-                    case ( from.stack |> Mass.first, to.stack |> Mass.third ) of
-                        ( Just target, Nothing ) ->
-                            { board = setMass draggingPoint (from.stack |> Mass.pop) board |> setMass point (to.stack |> Mass.push target)
-                            , maybeDragging = Nothing
-                            }
+                    else
+                        let
+                            from =
+                                findMass board draggingPoint
 
-                        _ ->
-                            { model | maybeDragging = Nothing }
+                            to =
+                                findMass board point
+                        in
+                        case ( from.stack |> Mass.first, to.stack |> Mass.third ) of
+                            ( Just target, Nothing ) ->
+                                { board = setMass draggingPoint (from.stack |> Mass.pop) board |> setMass point (to.stack |> Mass.push target)
+                                , maybeDragging = Nothing
+                                }
+
+                            _ ->
+                                { model | maybeDragging = Nothing }
 
         None ->
             model
